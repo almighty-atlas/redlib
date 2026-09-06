@@ -42,10 +42,22 @@ info() { printf '\033[36m==>\033[0m %s\n' "$*"; }
 warn() { printf '\033[33mwarnung:\033[0m %s\n' "$*" >&2; }
 ok()   { printf '\033[32m  ok\033[0m %s\n' "$*"; }
 
-# Liest das Manifest: eine Branch-Referenz je Zeile, '#' leitet Kommentare ein.
+# Das Manifest liegt selbst im Working Tree, den rebuild und rebase
+# umschalten - die Datei verschwaende also mitten im Lauf. Deshalb wird sie
+# vorab nach /tmp gesichert und nur noch von dort gelesen.
+MANIFEST_SNAPSHOT=""
+trap 'rm -f "$MANIFEST_SNAPSHOT"' EXIT
+
+snapshot_manifest() {
+    [ -f "$MANIFEST" ] || die "Manifest $MANIFEST fehlt (falscher Branch ausgecheckt?)"
+    MANIFEST_SNAPSHOT=$(mktemp -t atlas-patches.XXXXXX)
+    sed -e 's/#.*//' -e 's/[[:space:]]*$//' "$MANIFEST" | grep -v '^$' > "$MANIFEST_SNAPSHOT"
+    [ -s "$MANIFEST_SNAPSHOT" ] || die "Manifest $MANIFEST enthaelt keine Branches"
+}
+
 read_manifest() {
-    [ -f "$MANIFEST" ] || die "Manifest $MANIFEST fehlt"
-    sed -e 's/#.*//' -e 's/[[:space:]]*$//' "$MANIFEST" | grep -v '^$'
+    [ -n "$MANIFEST_SNAPSHOT" ] || snapshot_manifest
+    cat "$MANIFEST_SNAPSHOT"
 }
 
 require_clean_tree() {
@@ -114,6 +126,7 @@ cmd_rebuild() {
     local base="${1:-$DEFAULT_BASE}"
     require_clean_tree
     ensure_rerere
+    snapshot_manifest
 
     local tmp="atlas-build-$$"
     info "Baue $INTEGRATION_BRANCH neu auf $base ($(git rev-parse --short "$base"))"
@@ -171,6 +184,7 @@ cmd_rebase() {
     local base="${1:-$DEFAULT_BASE}"
     require_clean_tree
     ensure_rerere
+    snapshot_manifest
     info "Rebase aller Topic-Branches auf $base ($(git rev-parse --short "$base"))"
 
     local failed=""
@@ -197,6 +211,7 @@ cmd_rebase() {
 
 cmd_status() {
     local base="${1:-$DEFAULT_BASE}"
+    snapshot_manifest
     printf '%-34s %-10s %-8s %s\n' BRANCH COMMITS BASIS MERGE-TEST
     while read -r branch; do
         if ! git rev-parse -q --verify "$branch" >/dev/null; then

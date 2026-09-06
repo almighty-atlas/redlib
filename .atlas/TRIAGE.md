@@ -29,6 +29,16 @@ nicht eine Bewertung des Inhalts.
 | #422 | clean | Tastaturnavigation | Kostet nur eine JS-Datei. |
 | #410 | clean | Lizenzlinks in den restlichen JS-Dateien | AGPL-Hygiene, relevant weil dieser Fork oeffentlich ausgeliefert wird. |
 
+### Eigene Umsetzung statt PR
+
+- **#396 (fehlerbewusster Cache)** ist als `feat/error-aware-cache` neu
+  geschrieben. Der Original-PR stammt aus der Zeit vor dem `wreq`-Umstieg und
+  `unwrap()`t das `Result` im Route-Handler wieder - er behaelt also genau den
+  Panic, den er beseitigen soll. Die Neufassung laesst den Fehler bis zum
+  Router durchlaufen, der ihn als Fehlerseite rendert, und markiert den Cache
+  als `result_fallback`: bei Netzwerkfehlern bleibt die letzte erfolgreiche
+  Antwort gueltig, statt den Fehler zehn Minuten lang zu cachen.
+
 ### Nacharbeit an uebernommenen PRs
 
 - **#507 (RedGifs)** kompilierte nicht mehr. Upstream hat in #544 den
@@ -52,6 +62,7 @@ nicht eine Bewertung des Inhalts.
 | #548 | Umbau auf Axum/Hyper v1. Vom Autor selbst als unfertig und aufgegeben markiert, 38 Konfliktdateien. |
 | #254 | Schaltet die TLS-Zertifikatspruefung zum Debuggen ab. In einer erreichbaren Instanz nichts verloren. |
 | #400 | Laedt Medien clientseitig direkt von Reddit. Hebt genau die Proxy-Eigenschaft auf, wegen der redlib hier laeuft. |
+| #378 | Benennt in `Preferences` das Feld `theme` in `theme_light`/`theme_dark` um. Das bricht das Export/Restore-Format der Einstellungen, das upstream ueber `KNOWN_GOOD_CONFIGS` als Testvektoren festnagelt: bereits exportierte Configs liessen sich nicht mehr laden. Entfernt zusaetzlich `geo_filter` (siehe #566) und mehrere neuere Upstream-Tests. Die Idee ist gut - sie gehoert als eigene Implementierung umgesetzt, die das Serialisierungsformat erhaelt. |
 | #179, #181 | Zwei konkurrierende DASH-Player (Video.js bzw. dash.js), je ueber 20 Konfliktdateien. Die Instanz laeuft auf HLS. |
 
 ## Nicht relevant fuer diese Instanz
@@ -74,10 +85,8 @@ mit `atlasctl adopt <nr> <name>` plus Eintrag in `patches.list`.
 
 | PR | Merge | Was | Anmerkung |
 | --- | --- | --- | --- |
-| #378 | Konflikt | Getrennte Themes fuer hell und dunkel | Passt zum hiesigen `REDLIB_DEFAULT_THEME=system`. Konflikt nur in README und `utils.rs`. |
 | #290 | Konflikt | Unblur per Klick als Default, Unblur bei Hover als Option | Aendert das Verhalten von NSFW-Spoilern. |
 | #538 | Konflikt | Catppuccin-Themes | Konflikt nur in der README. |
-| #396 | Konflikt | Cache merkt sich Fehler | Stabilitaet: verhindert, dass Fehlerantworten dauerhaft gecacht werden. |
 | #460 | Konflikt | Tracking-Parameter aus Links entfernen | Passt zum Zweck der Instanz, schneidet aber breit. |
 | #394 | clean | Footer fix am unteren Bildschirmrand | Reine Geschmackssache. |
 | #572, #563 | clean | Bilder in RSS-Feeds | Nur sinnvoll, wenn die RSS-Feeds genutzt werden. |

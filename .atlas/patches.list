@@ -50,4 +50,9 @@ pr/422-keyboard-nav
 pr/410-js-license-links
 
 # --- Themes --------------------------------------------------------------
-pr/378-split-light-dark-themes
+# pr/378-split-light-dark-themes  bewusst draussen: benennt in Preferences das
+#                         Feld `theme` in `theme_light`/`theme_dark` um. Damit
+#                         bricht das Export/Restore-Format der Einstellungen,
+#                         das upstream ueber KNOWN_GOOD_CONFIGS festnagelt.
+#                         Der PR entfernt ausserdem geo_filter (siehe #566) und
+#                         mehrere neuere Upstream-Tests.

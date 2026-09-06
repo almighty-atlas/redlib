@@ -72,12 +72,15 @@ cmd_adopt() {
     local branch="pr/${pr}${name:+-$name}"
     info "Uebernehme PR #$pr als $branch"
 
-    # Nur die PR-eigenen Commits, ohne dessen Merge-Historie: der Branch soll
-    # sauber auf upstream/main sitzen, damit spaetere Rebases trivial bleiben.
-    git switch -C "$branch" "$DEFAULT_BASE"
-    if ! git cherry-pick --allow-empty "$(git merge-base "$DEFAULT_BASE" "$ref")..$ref"; then
-        warn "Cherry-Pick hat Konflikte - manuell aufloesen, dann 'git cherry-pick --continue'"
-        return 1
+    # Rebase statt Cherry-Pick: PR-Branches enthalten oft Merge-Commits aus
+    # main, die Cherry-Pick nicht verarbeiten kann. Rebase laesst sie weg und
+    # setzt nur die eigentlichen Aenderungen auf die aktuelle Basis.
+    git switch -C "$branch" "$ref" >/dev/null 2>&1
+    if ! git rebase --onto "$DEFAULT_BASE" "$(git merge-base "$DEFAULT_BASE" "$ref")" >/dev/null 2>&1; then
+        git rebase --abort 2>/dev/null || true
+        warn "Rebase von #$pr auf $DEFAULT_BASE hat Konflikte."
+        warn "Branch bleibt auf dem PR-Stand; Merge beim Rebuild loest es ggf. sauber."
+        git switch -C "$branch" "$ref" >/dev/null 2>&1
     fi
     ok "$branch angelegt ($(git rev-list --count "$DEFAULT_BASE..$branch") Commits)"
 }

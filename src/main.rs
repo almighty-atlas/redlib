@@ -424,16 +424,21 @@ pub async fn proxy_commit_info() -> Result<Response<Body>, String> {
 		Response::builder()
 			.status(200)
 			.header("content-type", "application/atom+xml")
-			.body(Body::from(fetch_commit_info().await))
+			.body(Body::from(fetch_commit_info().await?))
 			.unwrap_or_default(),
 	)
 }
 
-#[cached(time = 600)]
-async fn fetch_commit_info() -> String {
+// result_fallback keeps serving the last successful response while GitHub is
+// unreachable, instead of caching the failure for the next ten minutes. The
+// previous code expect()ed on both the request and the body, so a transient
+// network error panicked the task serving the request.
+#[cached(time = 600, result = true, result_fallback = true)]
+async fn fetch_commit_info() -> Result<String, String> {
 	let url = "https://github.com/redlib-org/redlib/commits/main.atom";
 
-	CLIENT.get(url).send().await.expect("Failed to request GitHub").text().await.expect("Failed to read body")
+	let res = CLIENT.get(url).send().await.map_err(|e| e.to_string())?;
+	res.text().await.map_err(|e| e.to_string())
 }
 
 pub async fn proxy_instances() -> Result<Response<Body>, String> {
@@ -441,14 +446,15 @@ pub async fn proxy_instances() -> Result<Response<Body>, String> {
 		Response::builder()
 			.status(200)
 			.header("content-type", "application/json")
-			.body(Body::from(fetch_instances().await))
+			.body(Body::from(fetch_instances().await?))
 			.unwrap_or_default(),
 	)
 }
 
-#[cached(time = 600)]
-async fn fetch_instances() -> String {
+#[cached(time = 600, result = true, result_fallback = true)]
+async fn fetch_instances() -> Result<String, String> {
 	let url = "https://raw.githubusercontent.com/redlib-org/redlib-instances/refs/heads/main/instances.json";
 
-	CLIENT.get(url).send().await.expect("Failed to request GitHub").text().await.expect("Failed to read body")
+	let res = CLIENT.get(url).send().await.map_err(|e| e.to_string())?;
+	res.text().await.map_err(|e| e.to_string())
 }

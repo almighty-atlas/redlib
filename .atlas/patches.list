@@ -33,7 +33,12 @@ pr/546-gallery-download
 #                         clientseitig zusammenzufuegen. Kollidiert ausserdem
 #                         mit pr/546-gallery-download.
 pr/506-cmaf
-pr/549-rich-video
+# pr/549-rich-video       bewusst draussen: der CMAF-Teil ist identisch zu
+#                         pr/506-cmaf, routet aber generisch ueber
+#                         /vid/:id/:prefix/:size und schiebt den Nutzerwert in
+#                         die Upstream-URL. Der zusaetzliche rich:video-Zweig
+#                         ist toter Code - er prueft dieselbe Bedingung wie
+#                         der erste Zweig der Kette und wird nie erreicht.
 pr/507-redgifs
 pr/561-giphy-comments
 

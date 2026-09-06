@@ -70,6 +70,11 @@ cmd_adopt() {
         || die "PR-Ref $pr unbekannt - erst 'atlasctl sync' laufen lassen"
 
     local branch="pr/${pr}${name:+-$name}"
+    # Topic-Branches zweigen von upstream/main ab und enthalten .atlas/ nicht.
+    # Ohne Rueckkehr auf den Ausgangsbranch waere das Skript nach dem ersten
+    # adopt aus dem Working Tree verschwunden.
+    local origin_branch
+    origin_branch=$(git branch --show-current)
     info "Uebernehme PR #$pr als $branch"
 
     # Rebase statt Cherry-Pick: PR-Branches enthalten oft Merge-Commits aus
@@ -82,7 +87,10 @@ cmd_adopt() {
         warn "Branch bleibt auf dem PR-Stand; Merge beim Rebuild loest es ggf. sauber."
         git switch -C "$branch" "$ref" >/dev/null 2>&1
     fi
-    ok "$branch angelegt ($(git rev-list --count "$DEFAULT_BASE..$branch") Commits)"
+    local n
+    n=$(git rev-list --count "$DEFAULT_BASE..$branch")
+    [ -n "$origin_branch" ] && git switch "$origin_branch" >/dev/null 2>&1
+    ok "$branch angelegt ($n Commits)"
 }
 
 # ------------------------------------------------------------ rebuild

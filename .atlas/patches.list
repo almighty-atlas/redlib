@@ -28,7 +28,10 @@ pr/298-gallery-slider
 pr/546-gallery-download
 
 # --- Medien --------------------------------------------------------------
-pr/545-media-download
+# pr/545-media-download   bewusst draussen: bettet 32 MB ffmpeg-core.wasm per
+#                         include_bytes! ins Binary, nur um Video und Audio
+#                         clientseitig zusammenzufuegen. Kollidiert ausserdem
+#                         mit pr/546-gallery-download.
 pr/506-cmaf
 pr/549-rich-video
 pr/507-redgifs

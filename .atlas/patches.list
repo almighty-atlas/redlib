@@ -14,6 +14,7 @@ meta/atlas-tooling
 pr/542-fix-comment-oob
 pr/560-fix-profile-share-links
 pr/521-fix-default-sort
+pr/396-error-aware-cache
 
 # --- Bedienung und Layout ------------------------------------------------
 pr/520-mobile-collapse-touch
@@ -47,3 +48,6 @@ pr/566-geo-filter
 pr/568-configurable-source-url
 pr/422-keyboard-nav
 pr/410-js-license-links
+
+# --- Themes --------------------------------------------------------------
+pr/378-split-light-dark-themes

@@ -17,6 +17,7 @@ pr/521-fix-default-sort
 feat/error-aware-cache
 
 # --- Bedienung und Layout ------------------------------------------------
+feat/style-cache-busting
 pr/520-mobile-collapse-touch
 pr/524-searchbox-outline
 pr/413-fix-post-margins

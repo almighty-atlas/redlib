@@ -14,7 +14,7 @@ meta/atlas-tooling
 pr/542-fix-comment-oob
 pr/560-fix-profile-share-links
 pr/521-fix-default-sort
-pr/396-error-aware-cache
+feat/error-aware-cache
 
 # --- Bedienung und Layout ------------------------------------------------
 pr/520-mobile-collapse-touch

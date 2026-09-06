@@ -4,7 +4,37 @@
 # Rebuild in dieser Reihenfolge nach `atlas` gemerged wird.
 # Leerzeilen und Zeilen ab '#' werden ignoriert.
 #
-# Reihenfolge ist relevant: konfliktarme Patches zuerst, grosse Umbauten zuletzt.
-# Die Begruendung je Eintrag steht in .atlas/TRIAGE.md.
+# Reihenfolge: erst Tooling, dann kleine Fixes, dann Media/Layout, zuletzt
+# alles, was breit in Templates und CSS schneidet. Begruendung je Eintrag
+# steht in .atlas/TRIAGE.md.
 
 meta/atlas-tooling
+
+# --- Bugfixes ------------------------------------------------------------
+pr/542-fix-comment-oob
+pr/560-fix-profile-share-links
+pr/521-fix-default-sort
+
+# --- Bedienung und Layout ------------------------------------------------
+pr/520-mobile-collapse-touch
+pr/524-searchbox-outline
+pr/413-fix-post-margins
+pr/291-collapse-by-indent
+pr/194-autoplay-visible-only
+pr/539-lazy-images
+
+# --- Galerie -------------------------------------------------------------
+pr/298-gallery-slider
+pr/546-gallery-download
+
+# --- Medien --------------------------------------------------------------
+pr/545-media-download
+pr/506-cmaf
+pr/549-rich-video
+pr/507-redgifs
+pr/561-giphy-comments
+
+# --- Instanz -------------------------------------------------------------
+pr/566-geo-filter
+pr/568-configurable-source-url
+pr/422-keyboard-nav

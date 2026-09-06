@@ -15,6 +15,21 @@
 
 set -euo pipefail
 
+# atlasctl liegt in genau dem Working Tree, den es umschaltet - beim Rebuild
+# verschwindet die Datei also mitten im Lauf, waehrend bash sie noch liest.
+# Deshalb kopiert sich das Skript einmalig nach /tmp und fuehrt sich von dort
+# fort. ATLASCTL_DETACHED verhindert die Endlosschleife.
+if [ -z "${ATLASCTL_DETACHED:-}" ]; then
+    _self=$(cd "$(dirname "$0")" && pwd)/$(basename "$0")
+    _copy=$(mktemp -t atlasctl.XXXXXX)
+    cat "$_self" > "$_copy"
+    chmod +x "$_copy"
+    ATLASCTL_DETACHED=1 "$_copy" "$@"
+    _rc=$?
+    rm -f "$_copy"
+    exit "$_rc"
+fi
+
 REPO_ROOT=$(git rev-parse --show-toplevel)
 cd "$REPO_ROOT"
 

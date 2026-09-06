@@ -1,0 +1,80 @@
+# Meldet, wenn upstream/main oder ein neues Upstream-Release vom Stand
+# abweicht, auf dem `atlas` zuletzt gebaut wurde. Das ist der Ausloeser
+# fuer den Sync-Lauf (`atlasctl sync && rebase && rebuild`).
+name: atlas upstream watch
+
+on:
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: atlas
+          fetch-depth: 0
+
+      - name: Vergleiche mit Upstream
+        id: diff
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git remote add upstream https://github.com/redlib-org/redlib.git
+          git fetch --quiet upstream main --tags
+
+          # Basis von `atlas` ist der juengste Commit, den wir mit
+          # upstream/main gemeinsam haben.
+          base=$(git merge-base HEAD upstream/main)
+          behind=$(git rev-list --count "$base"..upstream/main)
+          release=$(gh api repos/redlib-org/redlib/releases/latest --jq .tag_name 2>/dev/null || echo none)
+
+          {
+            echo "behind=$behind"
+            echo "release=$release"
+            echo "base=$(git rev-parse --short "$base")"
+            echo "head=$(git rev-parse --short upstream/main)"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Issue anlegen oder aktualisieren
+        if: steps.diff.outputs.behind != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BEHIND: ${{ steps.diff.outputs.behind }}
+          BASE: ${{ steps.diff.outputs.base }}
+          HEAD_SHA: ${{ steps.diff.outputs.head }}
+          RELEASE: ${{ steps.diff.outputs.release }}
+        run: |
+          set -euo pipefail
+          title="Upstream-Sync faellig: $BEHIND Commits hinter redlib-org/redlib"
+
+          printf '%s\n' \
+            "\`atlas\` basiert auf \`$BASE\`, upstream/main steht auf \`$HEAD_SHA\`." \
+            "Differenz: **$BEHIND Commits**. Letztes Upstream-Release: \`$RELEASE\`." \
+            "" \
+            "Sync-Lauf:" \
+            "" \
+            '```bash' \
+            ".atlas/atlasctl sync" \
+            ".atlas/atlasctl rebase" \
+            ".atlas/atlasctl rebuild" \
+            "git push --force-with-lease origin atlas" \
+            '```' \
+            "" \
+            "Konflikte, die dabei einmal geloest werden, merkt sich \`git rerere\`." \
+            > body.md
+
+          existing=$(gh issue list --state open --label upstream-sync --limit 1 --json number --jq '.[0].number // empty')
+          if [ -n "$existing" ]; then
+            gh issue edit "$existing" --title "$title" --body-file body.md
+          else
+            gh label create upstream-sync --color 0e8a16 --description "Abgleich mit redlib-org/redlib" 2>/dev/null || true
+            gh issue create --title "$title" --body-file body.md --label upstream-sync
+          fi

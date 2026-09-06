@@ -1,0 +1,10 @@
+# Manifest des Integrationsbranches `atlas`.
+#
+# Eine Zeile = ein Topic-Branch, der von upstream/main abzweigt und beim
+# Rebuild in dieser Reihenfolge nach `atlas` gemerged wird.
+# Leerzeilen und Zeilen ab '#' werden ignoriert.
+#
+# Reihenfolge ist relevant: konfliktarme Patches zuerst, grosse Umbauten zuletzt.
+# Die Begruendung je Eintrag steht in .atlas/TRIAGE.md.
+
+meta/atlas-tooling

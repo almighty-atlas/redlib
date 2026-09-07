@@ -47,6 +47,14 @@ nicht eine Bewertung des Inhalts.
   Futures. Portiert in `fix(redgifs): port the RedGifs client to wreq` -
   Anfragen laufen jetzt ueber den gemeinsamen Client, erben also dessen
   TLS-Emulation und Proxy-Konfiguration.
+- **#539 (Lazy Loading)** reservierte keinen Platz mehr. Upstream dimensioniert
+  Bilder ueber ein `<svg>` fester Pixelgroesse - das reserviert zwar, laedt aber
+  eifrig, weil das `<img loading="lazy">` darin in einem `<desc>` steckt und nie
+  gerendert wird. #539 ersetzt das durch ein echtes `<img>` und stellt damit
+  Lazy Loading her, verliert aber die Groessenangabe. Nachgezogen in
+  `fix: keep the reserved image box while lazy loading`: echte Pixelmasse als
+  Attribute plus eine definite Containerbreite, damit beides zugleich gilt.
+  Siehe Issue #2.
 - **#561 gegen #507**, **#566 gegen #568**, **#422 gegen #546**: jeweils
   additive Konflikte an derselben Stelle (Routentabelle bzw. Config-Struct).
   Aufgeloest durch Behalten beider Seiten; `git rerere` wiederholt das bei

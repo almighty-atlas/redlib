@@ -1182,6 +1182,20 @@ a.search_subreddit:hover {
     vertical-align: bottom;
 }
 
+/* In the feed a gallery gets the same height budget as a card image, so one
+   post with tall images cannot push every following post off the screen. */
+.gallery_preview figure img {
+    max-height: 512px;
+}
+
+/* Each figure carries the whole slide, so it must not collapse to the height
+   of a short image while a neighbouring slide is tall. */
+.gallery_preview figure {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .gallery .outbound_url {
     color: var(--accent);
     text-overflow: ellipsis;

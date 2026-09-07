@@ -283,6 +283,20 @@
 	</div>
 	{% call render_hls_notification(format!("{}%23{}", &self.url[1..].replace("&", "%26").replace("+", "%2B"), post.id)) %}
 	{% endif %}
+	{% else if (prefs.layout.is_empty() || prefs.layout == "card") && post.post_type == "gallery" && !post.gallery.is_empty() %}
+	<div class="gallery gallery_preview">
+		<div class="gallery_overlay" title="Hide overlay">
+			<div class="gallery_length" tabindex="-1">gallery<br>({{ post.gallery.len() }} images)</div>
+			<div class="gallery_progress" tabindex="-1">
+				<div class="gallery_dot_indicator"></div>
+			</div>
+		</div>
+		{% for image in post.gallery -%}
+		<figure>
+			<a href="{{ post.permalink }}"><img loading="lazy" alt="Gallery image" src="{{ image.url }}"/></a>
+		</figure>
+		{%- endfor %}
+	</div>
 	{% else if post.post_type != "self" %}
 	<a class="post_thumbnail{% if post.thumbnail.url.is_empty() %} no_thumbnail{% endif %}" href="{% if post.post_type == "link" %}{{ post.media.url }}{% else %}{{ post.permalink }}{% endif %}" rel="nofollow">
 		{% if post.thumbnail.url.is_empty() %}

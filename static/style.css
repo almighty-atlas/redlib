@@ -1453,9 +1453,14 @@ a.search_subreddit:hover {
     position: relative;
 }
 
+/* The strip is invisible - the line the reader sees belongs to .comment_left -
+   so its width costs nothing but reach. At 20px, and 15px on a phone, it was
+   below a usable target and sat right beside selectable comment text. It is
+   widened to the target floor; the indent column is wide enough that it still
+   stops short of the text. */
 .comment_right[open] > .comment_data > .comment_collapse {
     position: absolute;  /* relative to .comment_right */
-    width: 20px;
+    width: var(--tap-target-min, 24px);
     left: -35px;
     top: 45px;
     height: calc(100% - 45px);
@@ -2078,7 +2083,7 @@ th {
 
     .comment_right[open] > .comment_data > .comment_collapse {
         /* relative to .comment_right */
-        width: 15px;
+        width: var(--tap-target-min, 24px);
         left: -29px;
         top: 35px;
         height: calc(100% - 35px);

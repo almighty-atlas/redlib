@@ -61,6 +61,35 @@ das offizielle `Dockerfile` erwartet ein Binary aus der Release-Pipeline.
 Damit entfaellt der lokale Rust-Build auf tiny02; der Homelab-Stack zieht
 nur noch das Image.
 
+## Design-Grundlage
+
+`feat/design-tokens` benennt die Groessenskala, die das Stylesheet ohnehin
+benutzt: Spacing (5er-Raster), Radien, Typo-Stufen, `--tap-target-min` und
+`--media-max-height`. Die Werte sind aus den bestehenden Regeln ausgezaehlt,
+nicht erfunden - `--tap-target-min` ist die Ausnahme und stammt aus
+WCAG 2.5.8, weil es dafuer nichts abzuleiten gab.
+
+**Bestehende Regeln behalten ihre Literale.** 2300 Zeilen auf Tokens
+umzuschreiben wuerde mit jeder Upstream-Aenderung kollidieren und die
+guenstige Rebasebarkeit beenden. Neue und angefasste Regeln greifen die
+Tokens auf, die Skala breitet sich also mit der Arbeit aus statt in einem
+Rutsch.
+
+Kein Framework: redlib rendert serverseitig mit Askama, hat kein Node, kein
+Tailwind und keinen Bundler; die sieben JS-Dateien sind Progressive
+Enhancement. Vorschlaege wie shadcn/ui setzen React voraus und kaemen einem
+Frontend-Rewrite gleich - damit waere der Fork nicht mehr mergebar.
+
+## Offene Arbeit
+
+Die Befunde aus dem Usability-Durchgang vom 2026-09-07 liegen als Issues im
+Fork, mit Labels `defekt` / `usability` / `geschmack` plus `mobile`, `feed`,
+`galerie`. Jedes Issue nennt Viewport, Beispiel-URL und die gemessenen
+Werte, damit es ohne den urspruenglichen Kontext bearbeitbar ist.
+
+`geschmack` bedeutet: die Entscheidung liegt beim Betreiber. Diese Issues
+stellen die Frage und treffen sie nicht.
+
 ## Lizenz
 
 redlib steht unter AGPL-3.0. Der Fork bleibt oeffentlich, damit die

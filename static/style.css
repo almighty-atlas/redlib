@@ -1261,6 +1261,15 @@ a.search_subreddit:hover {
     gap: 10px;
 }
 
+/* A dot per image stops working once there are many of them: a Reddit gallery
+   holds up to 20, and that row is wider than the card it sits on - measured
+   at 485px inside a 313px card on a phone. Past ten the dots are dropped
+   rather than allowed to overhang; the overlay already states the count, and
+   where the script runs it puts a position counter in their place. */
+.gallery_progress:has(.gallery_dot:nth-of-type(11)) .gallery_dot {
+    display: none;
+}
+
 .gallery_dot,
 .gallery_dot_indicator {
     width: 10px;

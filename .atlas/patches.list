@@ -31,6 +31,7 @@ pr/539-lazy-images
 # --- Galerie -------------------------------------------------------------
 pr/298-gallery-slider
 feat/gallery-in-feed
+feat/gallery-navigation
 pr/546-gallery-download
 
 # --- Medien --------------------------------------------------------------

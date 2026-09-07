@@ -875,6 +875,18 @@ main > * > footer > a {
     word-wrap: normal;
 }
 
+/* Five sort options at 20px of horizontal padding each need 421px, which does
+   not fit a phone: "Controversial" ends up past the edge, reachable only by
+   swiping sideways with nothing to suggest it is there. The labels themselves
+   take 221px, so trading padding for room makes the whole set fit. */
+@media screen and (max-width: 480px) {
+    #sort_options > a,
+    #listing_options > a {
+        padding-left: var(--space-2, 10px);
+        padding-right: var(--space-2, 10px);
+    }
+}
+
 #sort_options > a.selected,
 #listing_options > a.selected {
     background: var(--accent);

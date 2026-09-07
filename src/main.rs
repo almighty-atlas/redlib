@@ -260,6 +260,9 @@ async fn main() {
 	app
 		.at("/galleryNav.js")
 		.get(|_| resource(include_str!("../static/galleryNav.js"), "text/javascript", false).boxed());
+	app
+		.at("/downloadGallery.js")
+		.get(|_| resource(include_str!("../static/downloadGallery.js"), "text/javascript", false).boxed());
 
 	app.at("/commits.atom").get(|_| async move { proxy_commit_info().await }.boxed());
 	app.at("/instances.json").get(|_| async move { proxy_instances().await }.boxed());

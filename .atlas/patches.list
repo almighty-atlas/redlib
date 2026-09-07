@@ -22,6 +22,7 @@ feat/error-aware-cache
 # --- Bedienung und Layout ------------------------------------------------
 feat/style-cache-busting
 pr/520-mobile-collapse-touch
+fix/sort-bar-fits-narrow-screens
 pr/524-searchbox-outline
 pr/413-fix-post-margins
 pr/291-collapse-by-indent

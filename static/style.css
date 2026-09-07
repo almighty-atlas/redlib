@@ -28,6 +28,43 @@
     --popup-border: 1px solid var(--popup-red);
 
     --footer-height: 30px;
+
+    /* Sizing scale.
+       These are named after what the stylesheet already does, not after a
+       system imposed on it: the values below were counted out of the rules
+       in this file. Existing rules are deliberately left on their literal
+       values - rewriting 2300 lines to reference tokens would collide with
+       every upstream change. New and edited rules use the tokens, so the
+       scale spreads as the file is touched rather than in one sweep. */
+
+    /* Spacing. This file already works on a 5px grid: 5px, 10px, 20px and
+       15px are, in that order, the four most common padding and margin
+       values in it and together account for most of them. */
+    --space-1: 5px;
+    --space-2: 10px;
+    --space-3: 15px;
+    --space-4: 20px;
+    --space-5: 30px;
+
+    /* Corner radius. 5px covers nearly every rounded element here. */
+    --radius: 5px;
+    --radius-round: 100%;
+
+    /* Type scale. 14px is the body size, 12px the secondary one. */
+    --font-size-sm: 12px;
+    --font-size-base: 14px;
+    --font-size-lg: 16px;
+    --font-size-xl: 20px;
+
+    /* Smallest hit area for anything interactive. This one is NOT derived
+       from the stylesheet: it has no such rule, which is precisely why the
+       settings checkboxes render at 13px. WCAG 2.5.8 puts the floor at 24px. */
+    --tap-target-min: 24px;
+
+    /* Height budget for media inside a feed card, so a single post cannot
+       push the rest of the feed off the screen. Already the de facto value
+       of .post_media_image.short. */
+    --media-max-height: 512px;
 }
 
 @font-face {

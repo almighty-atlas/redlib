@@ -1224,11 +1224,14 @@ a.search_subreddit:hover {
     transition: opacity 0.2s;
 }
 
-.gallery:focus-within .gallery_overlay {
+/* Tabbing onto a slide should uncover the picture, so the overlay fades out.
+   It must not fade for focus anywhere in the gallery though - controls placed
+   over the slider would hide the very indicator they operate. */
+.gallery:has(figure a:focus) .gallery_overlay {
     opacity: 0;
 }
 
-.gallery:not(:focus-within) .gallery_overlay * {
+.gallery:not(:has(figure a:focus)) .gallery_overlay * {
     pointer-events: auto;
 }
 

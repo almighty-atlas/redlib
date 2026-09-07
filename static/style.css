@@ -2461,3 +2461,124 @@ th {
     background-color: var(--accent);
     color: var(--text);
 }
+
+/* Gallery navigation
+   ------------------
+   Injected by galleryNav.js, so these rules only ever match when JavaScript
+   is available. The container mirrors how .gallery_overlay places itself over
+   the slider: a full-width flex item pulled back by its own width, made
+   sticky so it stays put while the slides scroll past underneath. */
+.gallery_nav {
+    flex: 1 0 100%;
+    /* The negative margin has to cancel the flex basis exactly, or the strip
+       adds its own scroll position: the slider would start 20px in and offer
+       one more stop than it has pictures. */
+    box-sizing: border-box;
+    margin-left: -100%;
+    position: sticky;
+    left: 0;
+    /* Match the slide, not the flex line: stretching would make the strip
+       taller than the picture it sits on. */
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--space-2, 10px);
+    /* Only the buttons take clicks; everything between them belongs to the
+       picture underneath. */
+    pointer-events: none;
+}
+
+.gallery_nav_button {
+    pointer-events: auto;
+    width: 36px;
+    height: 36px;
+    min-width: var(--tap-target-min, 24px);
+    min-height: var(--tap-target-min, 24px);
+    border: none;
+    border-radius: var(--radius-round, 100%);
+    background-color: rgba(0, 0, 0, 0.8);
+    color: var(--text);
+    font-size: var(--font-size-xl, 20px);
+    line-height: 1;
+    cursor: pointer;
+    opacity: 0.85;
+    transition: opacity 0.2s;
+    /* Centring the glyph: a button's default padding and the font's own
+       vertical metrics push the chevron off centre inside the circle. */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.gallery_nav_button:hover,
+.gallery_nav_button:focus-visible {
+    opacity: 1;
+}
+
+/* At either end the button has nothing to do, so it gets out of the way
+   rather than sitting there greyed out on top of the picture. */
+.gallery_nav_button:disabled {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.gallery_nav_prev::before {
+    content: "\2039";
+}
+
+.gallery_nav_next::before {
+    content: "\203A";
+}
+
+/* Once the controls exist, the scrollbar is a second, worse way to do the same
+   thing - and the only one that can leave the slider between two pictures.
+   Scrolling itself stays available, so a swipe still works. */
+.gallery_interactive {
+    scrollbar-width: none;
+}
+
+.gallery_interactive::-webkit-scrollbar {
+    display: none;
+}
+
+/* The dots report the position themselves once the script marks the current
+   one, so the scroll-driven indicator would only duplicate it. */
+.gallery_interactive .gallery_dot_indicator {
+    display: none;
+}
+
+.gallery_interactive .gallery_dot_current {
+    background: var(--text);
+}
+
+.gallery_interactive .gallery_dot {
+    cursor: pointer;
+    position: relative;
+}
+
+/* A 10px dot is far below a usable target, so each one carries an invisible
+   hit area around it. The row is spaced wide enough that those do not overlap. */
+.gallery_interactive .gallery_progress {
+    gap: var(--space-3, 15px);
+}
+
+.gallery_interactive .gallery_dot::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: var(--tap-target-min, 24px);
+    height: var(--tap-target-min, 24px);
+}
+
+/* Stands in for the dots on a gallery too long to show them one by one, so
+   the position is still readable. */
+.gallery_dot_counter {
+    color: var(--text);
+    font-size: var(--font-size-sm, 12px);
+    line-height: 1;
+    white-space: nowrap;
+}

@@ -1422,6 +1422,32 @@ a.search_subreddit:hover {
     width: calc(var(--media-w) * 1px);
 }
 
+/* Every slide in the feed shares one box, and the picture fills it.
+   Letting each slide keep its own shape meant the card was as tall as the
+   tallest picture and every other one sat centred in it: measured over a
+   mixed feed, 22.8% of the card width stayed empty on average and 60% at
+   worst, because a portrait picture held to a height budget is only about a
+   third as wide as the card.
+
+   4:3 is chosen so the change costs no density. At the 668px card width used
+   in that measurement it yields a 501px slide, and the cards were already
+   505 to 514px tall. Portrait pictures are cropped top and bottom in return;
+   the post page still shows them whole.
+
+   The fixed ratio also reserves the slide before any image arrives, so this
+   no longer depends on Reddit reporting dimensions for every picture. */
+.gallery_preview figure {
+    aspect-ratio: 4 / 3;
+}
+
+.gallery_preview figure img,
+.gallery_preview figure.sized img {
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    object-fit: cover;
+}
+
 .gallery .outbound_url {
     color: var(--accent);
     text-overflow: ellipsis;

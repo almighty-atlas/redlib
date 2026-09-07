@@ -148,8 +148,8 @@
 			</div>
 		</div>
 		{% for image in post.gallery -%}
-		<figure>
-			<a href="{{ image.url }}" ><img loading="lazy" alt="Gallery image" src="{{ image.url }}"/></a>
+		<figure{% if image.width > 0 && image.height > 0 %} class="sized" style="--media-w:{{ image.width }};--media-h:{{ image.height }}"{% endif %}>
+			<a href="{{ image.url }}" ><img {% if image.width > 0 && image.height > 0 %}width="{{ image.width }}" height="{{ image.height }}" {% endif %}loading="lazy" alt="Gallery image" src="{{ image.url }}"/></a>
 			<figcaption>
 				{% if !image.caption.is_empty() %}
 				<p>{{ image.caption }}</p>

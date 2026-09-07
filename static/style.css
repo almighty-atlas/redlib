@@ -1188,6 +1188,12 @@ a.search_subreddit:hover {
     display: flex;
     flex-flow: row nowrap;
     align-items: center;
+    /* .gallery shares the shrink-to-fit rule above with .post_media_content,
+       which makes its width depend on the slides while the slides size
+       themselves against the gallery. Nothing resolves that until an image
+       has loaded, and the slider sits at 2px until then. A slider spans the
+       column anyway, so a definite width costs nothing and breaks the loop. */
+    width: 100%;
     overflow-x: auto;
     scroll-snap-type: x mandatory;
     overscroll-behavior-x: none;
@@ -1284,7 +1290,22 @@ a.search_subreddit:hover {
     display: block;
     margin: auto;
     max-width: 100%;
-    border-radius: 5px;
+    height: auto;
+    border-radius: var(--radius, 5px);
+}
+
+/* Slides carry their real pixel dimensions, so the slider has a height before
+   any image arrives. The width has to be set explicitly rather than left to
+   max-width: the dimension attributes make the width definite, and a bare
+   max-height would then shorten the picture without narrowing it, which
+   stretches it. Deriving the width from the ratio keeps the picture intact
+   and still reserves the box. */
+.gallery figure.sized img {
+    /* The natural width, clamped by the max-width: 100% above. A percentage
+       cannot be used for width here: the figure is a flex item sized from
+       flex-basis, so a percentage width resolves against an indefinite box
+       and collapses to zero, while max-width resolves correctly. */
+    width: calc(var(--media-w) * 1px);
 }
 
 .gallery .outbound_url {

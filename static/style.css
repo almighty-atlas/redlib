@@ -1136,7 +1136,7 @@ a.search_subreddit:hover {
     width: auto;
     height: auto;
     max-width: 100%;
-    max-height: 512px;
+    max-height: var(--media-max-height, 512px);
     display: block;
     margin: auto;
 }
@@ -1172,8 +1172,52 @@ a.search_subreddit:hover {
     vertical-align: bottom;
 }
 
+/* Reserving space for an image that has not arrived yet needs a box with a
+   definite width, and neither the container nor the image had one: the
+   container is shrink-to-fit (auto margins in a grid area), so its width came
+   from the image, while the image resolved max-width: 100% against the
+   container. Circular either way, which is why upstream sized these with an
+   <svg> of fixed pixel dimensions instead.
+
+   The template hands the real dimensions down as --media-w / --media-h, and
+   the container takes a definite width from them: never wider than the
+   column, never wider than the image itself, and - in the feed - never so
+   wide that the derived height would exceed the height budget. The aspect
+   ratio then fixes the height before a single byte of image has loaded.
+
+   Posts without reported dimensions carry neither the class nor the custom
+   properties and keep the previous behaviour. */
+.post_media_content.sized {
+    aspect-ratio: var(--media-w) / var(--media-h);
+    width: min(100%, calc(var(--media-w) * 1px));
+}
+
+.post_media_content.sized:has(.post_media_image.short) {
+    width: min(
+        100%,
+        calc(var(--media-w) * 1px),
+        calc(var(--media-max-height, 512px) * var(--media-w) / var(--media-h))
+    );
+}
+
+/* The container now enforces the height budget, so the image fills it and
+   max-height must not apply a second time - it would scale height without
+   scaling width and distort the picture. */
+.post_media_content.sized .post_media_image,
+.post_media_content.sized .post_media_image img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    max-height: none;
+}
+
 .post_media_image img {
     max-width: 100%;
+    /* The width and height attributes carry the real pixel dimensions so the
+       browser can reserve the box before the image arrives. That only works
+       while height stays auto - otherwise the attribute fixes the used height
+       and a portrait image renders several thousand pixels tall. */
+    height: auto;
     vertical-align: bottom;
 }
 

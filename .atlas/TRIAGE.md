@@ -1,0 +1,101 @@
+# Triage der offenen Upstream-PRs
+
+Stand: 2026-09-07, gegen `upstream/main` = `a4d36e9` (2026-04-24).
+Alle 45 zu diesem Zeitpunkt offenen PRs von `redlib-org/redlib`.
+
+Spalte *Merge* ist das Ergebnis von `git merge-tree` gegen `upstream/main`,
+nicht eine Bewertung des Inhalts.
+
+## Uebernommen
+
+| PR | Merge | Was | Warum |
+| --- | --- | --- | --- |
+| #542 | clean | Out-of-bounds bei `comments[0].author.name` | Absturz bei Posts ohne Kommentare. Einzeiler. |
+| #560 | clean | Share-Links auf Profilseiten | Erzeugte bisher kaputte Links. |
+| #521 | clean | Default-Sortierung greift ohne gespeicherte Settings | Betrifft jede frische Session. |
+| #520 | clean | Groessere Trefferflaeche fuer Kommentar-Collapse mobil | Reine Bedienbarkeit. |
+| #524 | clean | Fokus-Outline der Suchbox | Sichtbarer Fokus, Barrierefreiheit. |
+| #413 | clean | Innenabstaende in Posts und Kommentaren | Behebt inkonsistente Abstaende. |
+| #291 | clean | Kommentar per Klick auf die Einrueckungslinie einklappen | Sehr nuetzlich in tiefen Threads. |
+| #194 | clean | Autoplay nur fuer sichtbare Videos | Spart Bandbreite spuerbar. |
+| #539 | clean | Lazy Loading fuer Post-Bilder | Entfernt mehr Code als es hinzufuegt. |
+| #298 | clean | **Galerie als horizontaler Slider** | Kernpunkt: Galerien waren untereinander gestapelt. Draft-Stand, Fortschrittspunkte sind noch auskommentiert. |
+| #546 | clean | Galerie herunterladen | Ergaenzt #298. |
+| #506 | clean | CMAF-Videoformat zusaetzlich zu DASH | Reddit liefert zunehmend CMAF. |
+| #507 | clean | RedGifs mit Proxy | Musste auf `wreq` portiert werden, siehe unten. |
+| #561 | clean | Giphy-GIFs in Kommentaren proxen und einbetten | Vermeidet Direktzugriffe des Browsers auf Giphy. |
+| #566 | clean | `REDLIB_DEFAULT_GEO_FILTER` | Regionsfilter als Instanz-Default. |
+| #568 | clean | `REDLIB_SOURCE_URL` konfigurierbar | Fuer einen Fork noetig: die AGPL verlangt, dass der Footer auf *diesen* Quellcode zeigt, nicht auf Upstream. |
+| #422 | clean | Tastaturnavigation | Kostet nur eine JS-Datei. |
+| #410 | clean | Lizenzlinks in den restlichen JS-Dateien | AGPL-Hygiene, relevant weil dieser Fork oeffentlich ausgeliefert wird. |
+
+### Eigene Umsetzung statt PR
+
+- **#396 (fehlerbewusster Cache)** ist als `feat/error-aware-cache` neu
+  geschrieben. Der Original-PR stammt aus der Zeit vor dem `wreq`-Umstieg und
+  `unwrap()`t das `Result` im Route-Handler wieder - er behaelt also genau den
+  Panic, den er beseitigen soll. Die Neufassung laesst den Fehler bis zum
+  Router durchlaufen, der ihn als Fehlerseite rendert, und markiert den Cache
+  als `result_fallback`: bei Netzwerkfehlern bleibt die letzte erfolgreiche
+  Antwort gueltig, statt den Fehler zehn Minuten lang zu cachen.
+
+### Nacharbeit an uebernommenen PRs
+
+- **#507 (RedGifs)** kompilierte nicht mehr. Upstream hat in #544 den
+  HTTP-Client von `hyper` auf `wreq` umgestellt; `CLIENT::request` nimmt
+  seither Methode *und* URI und liefert einen `RequestBuilder` statt eines
+  Futures. Portiert in `fix(redgifs): port the RedGifs client to wreq` -
+  Anfragen laufen jetzt ueber den gemeinsamen Client, erben also dessen
+  TLS-Emulation und Proxy-Konfiguration.
+- **#539 (Lazy Loading)** reservierte keinen Platz mehr. Upstream dimensioniert
+  Bilder ueber ein `<svg>` fester Pixelgroesse - das reserviert zwar, laedt aber
+  eifrig, weil das `<img loading="lazy">` darin in einem `<desc>` steckt und nie
+  gerendert wird. #539 ersetzt das durch ein echtes `<img>` und stellt damit
+  Lazy Loading her, verliert aber die Groessenangabe. Nachgezogen in
+  `fix: keep the reserved image box while lazy loading`: echte Pixelmasse als
+  Attribute plus eine definite Containerbreite, damit beides zugleich gilt.
+  Siehe Issue #2.
+- **#561 gegen #507**, **#566 gegen #568**, **#422 gegen #546**: jeweils
+  additive Konflikte an derselben Stelle (Routentabelle bzw. Config-Struct).
+  Aufgeloest durch Behalten beider Seiten; `git rerere` wiederholt das bei
+  kuenftigen Rebuilds automatisch.
+
+## Abgelehnt
+
+| PR | Warum |
+| --- | --- |
+| #545 | Bettet 32 MB `ffmpeg-core.wasm` per `include_bytes!` ins Binary, nur um Video und Audio clientseitig zu muxen. Kollidiert zusaetzlich mit #546. |
+| #549 | Der CMAF-Teil ist inhaltlich #506, routet aber generisch ueber `/vid/:id/:prefix/:size` und schiebt einen Nutzerwert in die Upstream-URL. Der zusaetzliche `rich:video`-Zweig prueft dieselbe Bedingung wie der erste Zweig derselben `if`-Kette und ist damit unerreichbar. |
+| #509 | Wechsel auf `hyper-tls`. Ueberholt: Upstream ist mit #544 auf `wreq` gegangen. |
+| #548 | Umbau auf Axum/Hyper v1. Vom Autor selbst als unfertig und aufgegeben markiert, 38 Konfliktdateien. |
+| #254 | Schaltet die TLS-Zertifikatspruefung zum Debuggen ab. In einer erreichbaren Instanz nichts verloren. |
+| #400 | Laedt Medien clientseitig direkt von Reddit. Hebt genau die Proxy-Eigenschaft auf, wegen der redlib hier laeuft. |
+| #378 | Benennt in `Preferences` das Feld `theme` in `theme_light`/`theme_dark` um. Das bricht das Export/Restore-Format der Einstellungen, das upstream ueber `KNOWN_GOOD_CONFIGS` als Testvektoren festnagelt: bereits exportierte Configs liessen sich nicht mehr laden. Entfernt zusaetzlich `geo_filter` (siehe #566) und mehrere neuere Upstream-Tests. Die Idee ist gut - sie gehoert als eigene Implementierung umgesetzt, die das Serialisierungsformat erhaelt. |
+| #179, #181 | Zwei konkurrierende DASH-Player (Video.js bzw. dash.js), je ueber 20 Konfliktdateien. Die Instanz laeuft auf HLS. |
+
+## Nicht relevant fuer diese Instanz
+
+| PR | Warum |
+| --- | --- |
+| #552, #492 | Nix-Abhaengigkeiten. Nix wird hier nicht benutzt. |
+| #556 | Betrifft nur `Dockerfile.alpine`. Gebaut wird mit `Dockerfile.ubuntu`. |
+| #517, #133 | Betreffen das Release-`Dockerfile`, das ein vorgebautes Binary erwartet. |
+| #439 | Alpine-Basisimage. Siehe #556. |
+| #435 | Devcontainer-Image. |
+| #486 | README-Korrektur bei Upstream. |
+| #454 | Erhaelt Einstellungen beim Wechsel auf eine zufaellige andere Instanz. Bei einer Einzelinstanz ohne Wirkung. |
+| #476 | Bump von brotli 7 auf 8. Dependency-Updates macht der Fork besser selbst und gesammelt. |
+
+## Offen - Geschmacks- oder Bedarfsfrage
+
+Diese sind nicht abgelehnt, sondern warten auf eine Entscheidung. Aufnehmen
+mit `atlasctl adopt <nr> <name>` plus Eintrag in `patches.list`.
+
+| PR | Merge | Was | Anmerkung |
+| --- | --- | --- | --- |
+| #290 | Konflikt | Unblur per Klick als Default, Unblur bei Hover als Option | Aendert das Verhalten von NSFW-Spoilern. |
+| #538 | Konflikt | Catppuccin-Themes | Konflikt nur in der README. |
+| #460 | Konflikt | Tracking-Parameter aus Links entfernen | Passt zum Zweck der Instanz, schneidet aber breit. |
+| #394 | clean | Footer fix am unteren Bildschirmrand | Reine Geschmackssache. |
+| #572, #563 | clean | Bilder in RSS-Feeds | Nur sinnvoll, wenn die RSS-Feeds genutzt werden. |
+| #564 | clean | Anzahl Posts pro Seite konfigurierbar | Vom Autor als WIP markiert. |

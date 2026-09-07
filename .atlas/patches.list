@@ -1,0 +1,66 @@
+# Manifest des Integrationsbranches `atlas`.
+#
+# Eine Zeile = ein Topic-Branch, der von upstream/main abzweigt und beim
+# Rebuild in dieser Reihenfolge nach `atlas` gemerged wird.
+# Leerzeilen und Zeilen ab '#' werden ignoriert.
+#
+# Reihenfolge: erst Tooling, dann kleine Fixes, dann Media/Layout, zuletzt
+# alles, was breit in Templates und CSS schneidet. Begruendung je Eintrag
+# steht in .atlas/TRIAGE.md.
+
+meta/atlas-tooling
+
+# --- Design-Grundlage ----------------------------------------------------
+feat/design-tokens
+
+# --- Bugfixes ------------------------------------------------------------
+pr/542-fix-comment-oob
+pr/560-fix-profile-share-links
+pr/521-fix-default-sort
+feat/error-aware-cache
+
+# --- Bedienung und Layout ------------------------------------------------
+feat/style-cache-busting
+pr/520-mobile-collapse-touch
+fix/sort-bar-fits-narrow-screens
+fix/settings-row-target
+pr/524-searchbox-outline
+pr/413-fix-post-margins
+pr/291-collapse-by-indent
+pr/194-autoplay-visible-only
+pr/539-lazy-images
+
+# --- Galerie -------------------------------------------------------------
+pr/298-gallery-slider
+feat/gallery-in-feed
+feat/gallery-navigation
+pr/546-gallery-download
+
+# --- Medien --------------------------------------------------------------
+# pr/545-media-download   bewusst draussen: bettet 32 MB ffmpeg-core.wasm per
+#                         include_bytes! ins Binary, nur um Video und Audio
+#                         clientseitig zusammenzufuegen. Kollidiert ausserdem
+#                         mit pr/546-gallery-download.
+pr/506-cmaf
+# pr/549-rich-video       bewusst draussen: der CMAF-Teil ist identisch zu
+#                         pr/506-cmaf, routet aber generisch ueber
+#                         /vid/:id/:prefix/:size und schiebt den Nutzerwert in
+#                         die Upstream-URL. Der zusaetzliche rich:video-Zweig
+#                         ist toter Code - er prueft dieselbe Bedingung wie
+#                         der erste Zweig der Kette und wird nie erreicht.
+pr/507-redgifs
+pr/561-giphy-comments
+
+# --- Instanz -------------------------------------------------------------
+pr/566-geo-filter
+pr/568-configurable-source-url
+pr/422-keyboard-nav
+pr/410-js-license-links
+
+# --- Themes --------------------------------------------------------------
+# pr/378-split-light-dark-themes  bewusst draussen: benennt in Preferences das
+#                         Feld `theme` in `theme_light`/`theme_dark` um. Damit
+#                         bricht das Export/Restore-Format der Einstellungen,
+#                         das upstream ueber KNOWN_GOOD_CONFIGS festnagelt.
+#                         Der PR entfernt ausserdem geo_filter (siehe #566) und
+#                         mehrere neuere Upstream-Tests.

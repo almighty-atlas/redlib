@@ -1,0 +1,261 @@
+#!/usr/bin/env bash
+#
+# atlasctl - Verwaltung des kuratierten redlib-Forks.
+#
+# Der Fork folgt dem "rebuildable integration branch"-Modell:
+#
+#   main    Spiegelung von upstream/main. Wird nie direkt bearbeitet.
+#   <topic> Ein Branch je Aenderung, immer von upstream/main abgezweigt.
+#   atlas   Integrationsbranch. Wird nicht gepflegt, sondern aus
+#           .atlas/patches.list deterministisch neu gebaut.
+#
+# Dadurch bleibt ein Upstream-Update billig: Topic-Branches rebasen,
+# `atlasctl rebuild` laufen lassen, fertig. `git rerere` merkt sich
+# einmal geloeste Konflikte, sodass Wiederholungen automatisch laufen.
+
+set -euo pipefail
+
+# atlasctl liegt in genau dem Working Tree, den es umschaltet - beim Rebuild
+# verschwindet die Datei also mitten im Lauf, waehrend bash sie noch liest.
+# Deshalb kopiert sich das Skript einmalig nach /tmp und fuehrt sich von dort
+# fort. ATLASCTL_DETACHED verhindert die Endlosschleife.
+if [ -z "${ATLASCTL_DETACHED:-}" ]; then
+    _self=$(cd "$(dirname "$0")" && pwd)/$(basename "$0")
+    _copy=$(mktemp -t atlasctl.XXXXXX)
+    cat "$_self" > "$_copy"
+    chmod +x "$_copy"
+    ATLASCTL_DETACHED=1 "$_copy" "$@"
+    _rc=$?
+    rm -f "$_copy"
+    exit "$_rc"
+fi
+
+REPO_ROOT=$(git rev-parse --show-toplevel)
+cd "$REPO_ROOT"
+
+MANIFEST=".atlas/patches.list"
+INTEGRATION_BRANCH="atlas"
+DEFAULT_BASE="upstream/main"
+
+die()  { printf '\033[31mfehler:\033[0m %s\n' "$*" >&2; exit 1; }
+info() { printf '\033[36m==>\033[0m %s\n' "$*"; }
+warn() { printf '\033[33mwarnung:\033[0m %s\n' "$*" >&2; }
+ok()   { printf '\033[32m  ok\033[0m %s\n' "$*"; }
+
+# Das Manifest liegt selbst im Working Tree, den rebuild und rebase
+# umschalten - die Datei verschwaende also mitten im Lauf. Deshalb wird sie
+# vorab nach /tmp gesichert und nur noch von dort gelesen.
+MANIFEST_SNAPSHOT=""
+trap 'rm -f "$MANIFEST_SNAPSHOT"' EXIT
+
+snapshot_manifest() {
+    [ -f "$MANIFEST" ] || die "Manifest $MANIFEST fehlt (falscher Branch ausgecheckt?)"
+    MANIFEST_SNAPSHOT=$(mktemp -t atlas-patches.XXXXXX)
+    sed -e 's/#.*//' -e 's/[[:space:]]*$//' "$MANIFEST" | grep -v '^$' > "$MANIFEST_SNAPSHOT"
+    [ -s "$MANIFEST_SNAPSHOT" ] || die "Manifest $MANIFEST enthaelt keine Branches"
+}
+
+read_manifest() {
+    [ -n "$MANIFEST_SNAPSHOT" ] || snapshot_manifest
+    cat "$MANIFEST_SNAPSHOT"
+}
+
+require_clean_tree() {
+    git diff --quiet && git diff --cached --quiet \
+        || die "Working Tree ist nicht sauber. Erst committen oder stashen."
+}
+
+ensure_rerere() {
+    if [ "$(git config --get rerere.enabled || echo false)" != "true" ]; then
+        warn "rerere ist aus - aktiviere es (spart Konfliktarbeit bei jedem Rebuild)"
+        git config rerere.enabled true
+        git config rerere.autoupdate true
+    fi
+}
+
+# ---------------------------------------------------------------- sync
+
+cmd_sync() {
+    info "Hole upstream inklusive aller PR-Refs"
+    # Der zusaetzliche Refspec macht jeden offenen Upstream-PR lokal als
+    # upstream-pr/<nummer> verfuegbar, ohne dass der Autor etwas tun muss.
+    if ! git config --get-all remote.upstream.fetch | grep -q 'refs/pull'; then
+        git config --add remote.upstream.fetch '+refs/pull/*/head:refs/remotes/upstream-pr/*'
+    fi
+    git fetch upstream --tags --prune
+    ok "upstream/main = $(git rev-parse --short upstream/main)"
+}
+
+# ------------------------------------------------------------- adopt
+
+# Erzeugt aus einem Upstream-PR einen eigenen Topic-Branch.
+cmd_adopt() {
+    local pr="${1:-}" name="${2:-}"
+    [ -n "$pr" ] || die "Aufruf: atlasctl adopt <pr-nummer> [branch-name]"
+    local ref="refs/remotes/upstream-pr/$pr"
+    git rev-parse -q --verify "$ref" >/dev/null \
+        || die "PR-Ref $pr unbekannt - erst 'atlasctl sync' laufen lassen"
+
+    local branch="pr/${pr}${name:+-$name}"
+    # Topic-Branches zweigen von upstream/main ab und enthalten .atlas/ nicht.
+    # Ohne Rueckkehr auf den Ausgangsbranch waere das Skript nach dem ersten
+    # adopt aus dem Working Tree verschwunden.
+    local origin_branch
+    origin_branch=$(git branch --show-current)
+    info "Uebernehme PR #$pr als $branch"
+
+    # Rebase statt Cherry-Pick: PR-Branches enthalten oft Merge-Commits aus
+    # main, die Cherry-Pick nicht verarbeiten kann. Rebase laesst sie weg und
+    # setzt nur die eigentlichen Aenderungen auf die aktuelle Basis.
+    git switch -C "$branch" "$ref" >/dev/null 2>&1
+    if ! git rebase --onto "$DEFAULT_BASE" "$(git merge-base "$DEFAULT_BASE" "$ref")" >/dev/null 2>&1; then
+        git rebase --abort 2>/dev/null || true
+        warn "Rebase von #$pr auf $DEFAULT_BASE hat Konflikte."
+        warn "Branch bleibt auf dem PR-Stand; Merge beim Rebuild loest es ggf. sauber."
+        git switch -C "$branch" "$ref" >/dev/null 2>&1
+    fi
+    local n
+    n=$(git rev-list --count "$DEFAULT_BASE..$branch")
+    [ -n "$origin_branch" ] && git switch "$origin_branch" >/dev/null 2>&1
+    ok "$branch angelegt ($n Commits)"
+}
+
+# ------------------------------------------------------------ rebuild
+
+cmd_rebuild() {
+    local base="${1:-$DEFAULT_BASE}"
+    require_clean_tree
+    ensure_rerere
+    snapshot_manifest
+
+    local tmp="atlas-build-$$"
+    info "Baue $INTEGRATION_BRANCH neu auf $base ($(git rev-parse --short "$base"))"
+    git switch -C "$tmp" "$base" >/dev/null 2>&1
+
+    local failed=0
+    while read -r branch; do
+        git rev-parse -q --verify "$branch" >/dev/null || {
+            warn "Branch '$branch' existiert nicht - uebersprungen"; continue; }
+
+        if git merge --no-ff --no-edit -m "atlas: merge $branch" "$branch" >/dev/null 2>&1; then
+            ok "$branch"
+            continue
+        fi
+
+        # rerere kann den Konflikt bereits aufgeloest haben. Dann bleibt nur
+        # der Commit uebrig; sonst ist echte Handarbeit noetig.
+        if [ -z "$(git diff --name-only --diff-filter=U)" ]; then
+            git commit --no-edit -m "atlas: merge $branch (rerere)" >/dev/null
+            ok "$branch (Konflikt via rerere aufgeloest)"
+        else
+            printf '\033[31m  KONFLIKT\033[0m %s:\n' "$branch"
+            git diff --name-only --diff-filter=U | sed 's/^/      /'
+            failed=1
+            break
+        fi
+    done < <(read_manifest)
+
+    if [ "$failed" -ne 0 ]; then
+        cat >&2 <<'MSG'
+
+Rebuild gestoppt. Vorgehen:
+  1. Konflikte im Working Tree aufloesen, `git add` je Datei
+  2. `git commit --no-edit`
+  3. `.atlas/atlasctl rebuild` erneut starten
+
+rerere merkt sich die Aufloesung; beim naechsten Upstream-Update laeuft
+derselbe Konflikt automatisch durch.
+MSG
+        return 1
+    fi
+
+    git branch -f "$INTEGRATION_BRANCH" "$tmp"
+    git switch "$INTEGRATION_BRANCH" >/dev/null 2>&1
+    git branch -D "$tmp" >/dev/null 2>&1
+    info "$INTEGRATION_BRANCH = $(git rev-parse --short "$INTEGRATION_BRANCH")"
+    ok "Rebuild fertig"
+}
+
+# ------------------------------------------------------------- rebase
+
+# Setzt alle Topic-Branches auf eine neue Upstream-Basis um. Das ist der
+# Schritt nach einem Upstream-Release, vor dem Rebuild.
+cmd_rebase() {
+    local base="${1:-$DEFAULT_BASE}"
+    require_clean_tree
+    ensure_rerere
+    snapshot_manifest
+    info "Rebase aller Topic-Branches auf $base ($(git rev-parse --short "$base"))"
+
+    local failed=""
+    while read -r branch; do
+        git rev-parse -q --verify "$branch" >/dev/null || continue
+        if git rebase --onto "$base" "$(git merge-base "$branch" "$base")" "$branch" >/dev/null 2>&1; then
+            ok "$branch"
+        else
+            git rebase --abort 2>/dev/null || true
+            printf '\033[33m  BRAUCHT HANDARBEIT\033[0m %s\n' "$branch"
+            failed="$failed $branch"
+        fi
+    done < <(read_manifest)
+
+    git switch "$INTEGRATION_BRANCH" >/dev/null 2>&1 || git switch "$base" --detach >/dev/null 2>&1
+    if [ -n "$failed" ]; then
+        warn "Manuell rebasen:$failed"
+        return 1
+    fi
+    ok "Alle Topic-Branches sitzen auf $base"
+}
+
+# ------------------------------------------------------------- status
+
+cmd_status() {
+    local base="${1:-$DEFAULT_BASE}"
+    snapshot_manifest
+    printf '%-34s %-10s %-8s %s\n' BRANCH COMMITS BASIS MERGE-TEST
+    while read -r branch; do
+        if ! git rev-parse -q --verify "$branch" >/dev/null; then
+            printf '%-34s %-10s %-8s %s\n' "$branch" '-' '-' 'FEHLT'; continue
+        fi
+        local n onbase merge
+        n=$(git rev-list --count "$base..$branch" 2>/dev/null || echo '?')
+        if [ "$(git merge-base "$branch" "$base")" = "$(git rev-parse "$base")" ]; then
+            onbase="aktuell"
+        else
+            onbase="alt"
+        fi
+        if git merge-tree --write-tree "$base" "$branch" >/dev/null 2>&1; then
+            merge="clean"
+        else
+            merge="KONFLIKT"
+        fi
+        printf '%-34s %-10s %-8s %s\n' "$branch" "$n" "$onbase" "$merge"
+    done < <(read_manifest)
+}
+
+# --------------------------------------------------------------- main
+
+usage() {
+    cat <<'MSG'
+atlasctl <befehl> [argumente]
+
+  sync                     upstream + alle PR-Refs holen
+  adopt <pr> [name]        Upstream-PR als eigenen Topic-Branch uebernehmen
+  status [base]            Zustand aller Branches aus dem Manifest
+  rebase [base]            alle Topic-Branches auf neue Basis umsetzen
+  rebuild [base]           Integrationsbranch `atlas` neu bauen
+
+Nach einem Upstream-Release:
+  .atlas/atlasctl sync && .atlas/atlasctl rebase && .atlas/atlasctl rebuild
+MSG
+}
+
+case "${1:-}" in
+    sync)    shift; cmd_sync "$@" ;;
+    adopt)   shift; cmd_adopt "$@" ;;
+    status)  shift; cmd_status "$@" ;;
+    rebase)  shift; cmd_rebase "$@" ;;
+    rebuild) shift; cmd_rebuild "$@" ;;
+    ""|-h|--help|help) usage ;;
+    *) die "unbekannter Befehl: $1" ;;
+esac

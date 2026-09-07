@@ -2193,6 +2193,12 @@ th {
     cursor: pointer;
     opacity: 0.85;
     transition: opacity 0.2s;
+    /* Centring the glyph: a button's default padding and the font's own
+       vertical metrics push the chevron off centre inside the circle. */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
 }
 
 .gallery_nav_button:hover,
@@ -2213,4 +2219,46 @@ th {
 
 .gallery_nav_next::before {
     content: "\203A";
+}
+
+/* Once the controls exist, the scrollbar is a second, worse way to do the same
+   thing - and the only one that can leave the slider between two pictures.
+   Scrolling itself stays available, so a swipe still works. */
+.gallery_interactive {
+    scrollbar-width: none;
+}
+
+.gallery_interactive::-webkit-scrollbar {
+    display: none;
+}
+
+/* The dots report the position themselves once the script marks the current
+   one, so the scroll-driven indicator would only duplicate it. */
+.gallery_interactive .gallery_dot_indicator {
+    display: none;
+}
+
+.gallery_interactive .gallery_dot_current {
+    background: var(--text);
+}
+
+.gallery_interactive .gallery_dot {
+    cursor: pointer;
+    position: relative;
+}
+
+/* A 10px dot is far below a usable target, so each one carries an invisible
+   hit area around it. The row is spaced wide enough that those do not overlap. */
+.gallery_interactive .gallery_progress {
+    gap: var(--space-3, 15px);
+}
+
+.gallery_interactive .gallery_dot::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: var(--tap-target-min, 24px);
+    height: var(--tap-target-min, 24px);
 }

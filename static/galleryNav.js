@@ -62,10 +62,15 @@ function addNavigation(gallery) {
 	// before the slides so it does not add a scroll position of its own.
 	gallery.insertBefore(nav, gallery.querySelector("figure"));
 
-	const syncEnabled = () => {
+	const dots = Array.from(gallery.querySelectorAll(".gallery_dot"));
+
+	const sync = () => {
 		const index = currentSlide(gallery);
 		previous.disabled = index <= 0;
 		next.disabled = index >= slides - 1;
+		dots.forEach((dot, position) => {
+			dot.classList.toggle("gallery_dot_current", position === index);
+		});
 	};
 
 	// Refreshed right after moving rather than only from the scroll event.
@@ -74,15 +79,41 @@ function addNavigation(gallery) {
 	// would leave "previous" disabled forever.
 	const move = (direction) => {
 		step(gallery, direction);
-		syncEnabled();
+		sync();
+	};
+
+	const jumpTo = (index) => {
+		goToSlide(gallery, index);
+		sync();
 	};
 
 	previous.addEventListener("click", () => move(-1));
 	next.addEventListener("click", () => move(1));
 
-	// Swiping and sideways scrolling still have to update the buttons.
-	gallery.addEventListener("scroll", syncEnabled, { passive: true });
-	syncEnabled();
+	// The dots are plain elements in the markup, because without this script
+	// they cannot lead anywhere and a row of dead buttons would be worse than
+	// a row of indicators. Here they become real controls.
+	dots.forEach((dot, index) => {
+		dot.setAttribute("role", "button");
+		dot.setAttribute("aria-label", "Image " + (index + 1));
+		dot.tabIndex = 0;
+		dot.addEventListener("click", () => jumpTo(index));
+		dot.addEventListener("keydown", (event) => {
+			if (event.key === "Enter" || event.key === " ") {
+				event.preventDefault();
+				jumpTo(index);
+			}
+		});
+	});
+
+	// Marks the slider as script-driven: the dots now report the position, so
+	// the scroll-timeline indicator steps aside, and the scrollbar gives way
+	// to the controls.
+	gallery.classList.add("gallery_interactive");
+
+	// Swiping and sideways scrolling still have to update the controls.
+	gallery.addEventListener("scroll", sync, { passive: true });
+	sync();
 
 	// Arrow keys work once one of the buttons has focus; the event bubbles
 	// from the button up to the gallery.

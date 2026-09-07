@@ -1125,6 +1125,11 @@ a.search_subreddit:hover {
 .gallery {
     border: var(--panel-border);
     border-radius: 5px;
+    /* The border these gain has to count towards their width. Left on
+       content-box, a max-width of 100% bounds the content alone and the two
+       border pixels push past it: a video measured 315px inside a 313px
+       column, with the overflow quietly clipped. */
+    box-sizing: border-box;
 }
 
 .post_media_video {

@@ -1185,7 +1185,17 @@ a.search_subreddit:hover {
 /* In the feed a gallery gets the same height budget as a card image, so one
    post with tall images cannot push every following post off the screen. */
 .gallery_preview figure img {
-    max-height: 512px;
+    max-height: var(--media-max-height, 512px);
+}
+
+/* In the feed the height budget is folded into the width, so the slide keeps
+   its aspect ratio instead of being squashed by max-height. */
+.gallery_preview figure.sized img {
+    width: min(
+        calc(var(--media-w) * 1px),
+        calc(var(--media-max-height, 512px) * var(--media-w) / var(--media-h))
+    );
+    max-height: none;
 }
 
 /* Each figure carries the whole slide, so it must not collapse to the height

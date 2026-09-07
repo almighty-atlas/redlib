@@ -288,12 +288,15 @@
 		<div class="gallery_overlay" title="Hide overlay">
 			<div class="gallery_length" tabindex="-1">gallery<br>({{ post.gallery.len() }} images)</div>
 			<div class="gallery_progress" tabindex="-1">
+				{% for _ in 0..post.gallery.len() %}
+				<div class="gallery_dot"></div>
+				{% endfor %}
 				<div class="gallery_dot_indicator"></div>
 			</div>
 		</div>
 		{% for image in post.gallery -%}
-		<figure>
-			<a href="{{ post.permalink }}"><img loading="lazy" alt="Gallery image" src="{{ image.url }}"/></a>
+		<figure{% if image.width > 0 && image.height > 0 %} class="sized" style="--media-w:{{ image.width }};--media-h:{{ image.height }}"{% endif %}>
+			<a href="{{ post.permalink }}"><img {% if image.width > 0 && image.height > 0 %}width="{{ image.width }}" height="{{ image.height }}" {% endif %}loading="lazy" alt="Gallery image" src="{{ image.url }}"/></a>
 		</figure>
 		{%- endfor %}
 	</div>

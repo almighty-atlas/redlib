@@ -260,8 +260,8 @@ nav #redlib {
     vertical-align: -2px;
 }
 
-figcaption {
-    margin-top: 5px;
+figcaption p {
+    margin: 5px 0;
     text-align: center;
 }
 
@@ -1173,6 +1173,18 @@ a.search_subreddit:hover {
     overflow: hidden;
 }
 
+.post_media_content:not(:has(.post_media_video)),
+.post_media_video,
+.gallery {
+    border: var(--panel-border);
+    border-radius: 5px;
+    /* The border these gain has to count towards their width. Left on
+       content-box, a max-width of 100% bounds the content alone and the two
+       border pixels push past it: a video measured 315px inside a 313px
+       column, with the overflow quietly clipped. */
+    box-sizing: border-box;
+}
+
 .post_media_video {
     min-width: 100px;
     max-width: 100px;
@@ -1274,9 +1286,140 @@ a.search_subreddit:hover {
     vertical-align: bottom;
 }
 
+.gallery {
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: center;
+    /* .gallery shares the shrink-to-fit rule above with .post_media_content,
+       which makes its width depend on the slides while the slides size
+       themselves against the gallery. Nothing resolves that until an image
+       has loaded, and the slider sits at 2px until then. A slider spans the
+       column anyway, so a definite width costs nothing and breaks the loop. */
+    width: 100%;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: none;
+    background: var(--background);
+    transition: background 0.2s;
+}
+
+.post:hover .gallery {
+    background: var(--post);
+}
+
+.gallery figure {
+    flex: 1 0 100%;
+    scroll-snap-align: center;
+    scroll-snap-stop: always;
+    margin: 0;
+}
+
+.gallery_overlay {
+    flex: 1 0 100%;
+    height: 100%;
+    position: sticky;
+    left: 0;
+    margin-left: -100%;
+    pointer-events: none;
+    display: flex;
+    justify-content: center;
+    transition: opacity 0.2s;
+}
+
+/* Tabbing onto a slide should uncover the picture, so the overlay fades out.
+   It must not fade for focus anywhere in the gallery though - controls placed
+   over the slider would hide the very indicator they operate. */
+.gallery:has(figure a:focus) .gallery_overlay {
+    opacity: 0;
+}
+
+.gallery:not(:has(figure a:focus)) .gallery_overlay * {
+    pointer-events: auto;
+}
+
+.gallery_length {
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    padding: 10px;
+    text-align: center;
+    background-color: rgba(0, 0, 0, 0.8);
+    border-radius: 5px;
+}
+
+@supports not (animation-timeline: scroll()) {
+    .gallery_progress {
+        display: none;
+    }
+}
+
+.gallery_progress {
+    position: absolute;
+    bottom: 10px;
+    background-color: rgba(0, 0, 0, 0.8);
+    border: 10px solid transparent;
+    border-radius: 15px;
+    display: flex;
+    gap: 10px;
+}
+
+/* A dot per image stops working once there are many of them: a Reddit gallery
+   holds up to 20, and that row is wider than the card it sits on - measured
+   at 485px inside a 313px card on a phone. Past ten the dots are dropped
+   rather than allowed to overhang; the overlay already states the count, and
+   where the script runs it puts a position counter in their place. */
+.gallery_progress:has(.gallery_dot:nth-of-type(11)) .gallery_dot {
+    display: none;
+}
+
+.gallery_dot,
+.gallery_dot_indicator {
+    width: 10px;
+    height: 10px;
+    box-sizing: border-box;
+    border: 1px solid var(--text);
+    border-radius: 50%;
+}
+
+.gallery_dot_indicator {
+    background: var(--text);
+    position: absolute;
+    animation-name: galleryDotIndicatorScroll;
+    animation-timeline: scroll(inline nearest);
+    animation-timing-function: linear;
+}
+
+@keyframes galleryDotIndicatorScroll {
+    from {
+        left: 0;
+    }
+
+    to {
+        left: 100%;
+        transform: translateX(-100%);
+    }
+}
+
 .gallery img {
+    display: block;
+    margin: auto;
     max-width: 100%;
-    vertical-align: bottom;
+    height: auto;
+    border-radius: var(--radius, 5px);
+}
+
+/* Slides carry their real pixel dimensions, so the slider has a height before
+   any image arrives. The width has to be set explicitly rather than left to
+   max-width: the dimension attributes make the width definite, and a bare
+   max-height would then shorten the picture without narrowing it, which
+   stretches it. Deriving the width from the ratio keeps the picture intact
+   and still reserves the box. */
+.gallery figure.sized img {
+    /* The natural width, clamped by the max-width: 100% above. A percentage
+       cannot be used for width here: the figure is a flex item sized from
+       flex-basis, so a percentage width resolves against an indefinite box
+       and collapses to zero, while max-width resolves correctly. */
+    width: calc(var(--media-w) * 1px);
 }
 
 .gallery .outbound_url {

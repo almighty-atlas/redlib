@@ -64,10 +64,26 @@ function addNavigation(gallery) {
 
 	const dots = Array.from(gallery.querySelectorAll(".gallery_dot"));
 
+	// A long gallery has its dots dropped by the stylesheet, because the row
+	// would be wider than the card. Reading that decision back, rather than
+	// repeating the threshold here, keeps the two from drifting apart.
+	const dotsHidden = dots.length > 0 && getComputedStyle(dots[0]).display === "none";
+
+	let counter = null;
+	if (dotsHidden) {
+		counter = document.createElement("div");
+		counter.className = "gallery_dot_counter";
+		gallery.querySelector(".gallery_progress").append(counter);
+	}
+
 	const sync = () => {
 		const index = currentSlide(gallery);
 		previous.disabled = index <= 0;
 		next.disabled = index >= slides - 1;
+		if (counter) {
+			counter.textContent = index + 1 + " / " + slides;
+			return;
+		}
 		dots.forEach((dot, position) => {
 			dot.classList.toggle("gallery_dot_current", position === index);
 		});
@@ -93,7 +109,8 @@ function addNavigation(gallery) {
 	// The dots are plain elements in the markup, because without this script
 	// they cannot lead anywhere and a row of dead buttons would be worse than
 	// a row of indicators. Here they become real controls.
-	dots.forEach((dot, index) => {
+	// Only worth doing while the dots are actually on screen.
+	(dotsHidden ? [] : dots).forEach((dot, index) => {
 		dot.setAttribute("role", "button");
 		dot.setAttribute("aria-label", "Image " + (index + 1));
 		dot.tabIndex = 0;

@@ -2262,3 +2262,12 @@ th {
     width: var(--tap-target-min, 24px);
     height: var(--tap-target-min, 24px);
 }
+
+/* Stands in for the dots on a gallery too long to show them one by one, so
+   the position is still readable. */
+.gallery_dot_counter {
+    color: var(--text);
+    font-size: var(--font-size-sm, 12px);
+    line-height: 1;
+    white-space: nowrap;
+}
